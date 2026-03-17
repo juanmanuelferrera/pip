@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Board</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    user-select: none;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 32px;
+  }
+  .grid {
+    display: inline-grid;
+    grid-template-columns: repeat(5, 110px);
+    gap: 28px 24px;
+  }
+  .app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .app:hover { transform: scale(1.1); }
+  .app:active { transform: scale(0.92); }
+  .app img { width: 80px; height: 80px; border-radius: 18px; }
+  .app:hover img { box-shadow: 0 6px 28px rgba(255,255,255,0.12); }
+  .app .name { font-size: 12px; font-weight: 500; color: #777; text-align: center; white-space: nowrap; }
+  .app:hover .name { color: #ccc; }
+  .app .count { font-size: 9px; color: #333; }
+</style>
+</head>
+<body>
+<div class="grid" id="grid"></div>
+<script>
+  let allApps = [];
+  let usage = {};
+  const grid = document.getElementById('grid');
+
+  function shortName(n) {
+    const m = {'DaVinci Resolve':'DaVinci','GitHub Desktop':'GitHub','Ajustes del Sistema':'Ajustes','Vista Previa':'Preview'};
+    return m[n] || (n.length > 12 ? n.slice(0,11)+'…' : n);
+  }
+
+  function sortApps() {
+    return [...allApps].sort((a, b) => {
+      const sA = (usage[a]||{}).seconds||0, sB = (usage[b]||{}).seconds||0;
+      if (sB !== sA) return sB - sA;
+      const cA = (usage[a]||{}).count||0, cB = (usage[b]||{}).count||0;
+      if (cB !== cA) return cB - cA;
+      return ((usage[b]||{}).last||0) - ((usage[a]||{}).last||0);
+    });
+  }
+
+  function render() {
+    const sorted = sortApps();
+    grid.innerHTML = '';
+    sorted.forEach(name => {
+      const count = (usage[name]||{}).count||0;
+      const div = document.createElement('div');
+      div.className = 'app';
+      div.onclick = () => launch(name);
+      div.innerHTML = `
+        <img src="icons/${encodeURIComponent(name)}.png" onerror="this.style.display='none'">
+        <div class="name">${shortName(name)}</div>
+        ${count > 0 ? `<div class="count">${count}</div>` : ''}`;
+      grid.appendChild(div);
+    });
+  }
+
+  async function launch(name) {
+    await fetch(`http://localhost:9111/launch/${encodeURIComponent(name)}`);
+    if (!usage[name]) usage[name] = {count:0,last:0};
+    usage[name].count++;
+    usage[name].last = Date.now()/1000;
+    render();
+  }
+
+  async function init() {
+    const [a, u] = await Promise.all([
+      fetch('http://localhost:9111/apps').then(r=>r.json()),
+      fetch('http://localhost:9111/usage').then(r=>r.json())
+    ]);
+    allApps = a; usage = u;
+    render();
+  }
+  init();
+</script>
+</body>
+</html>
