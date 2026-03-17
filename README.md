@@ -2,7 +2,7 @@
 
 A smart app launcher for macOS that learns what you use most.
 
-<video src="https://github.com/juanmanuelferrera/pip/raw/main/demo.mp4" width="100%" autoplay loop muted playsinline></video>
+![Pip demo](demo.gif)
 
 Pip lives in your Dock. Click it and a 3×3 grid appears with your 9 most-used apps. Click an app — it launches, Pip hides. That's it.
 
